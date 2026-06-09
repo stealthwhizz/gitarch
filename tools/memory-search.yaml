@@ -1,0 +1,20 @@
+name: memory-search
+description: Search memory for previous investigation findings
+input_schema:
+  type: object
+  properties:
+    query:
+      type: string
+      description: Search query (e.g., file pattern, author, pattern name)
+    repo:
+      type: string
+      description: Repository URL to filter by (optional)
+    limit:
+      type: number
+      description: Maximum results to return
+      default: 10
+  required:
+    - query
+implementation:
+  script: scripts/memory-search.sh
+  runtime: sh

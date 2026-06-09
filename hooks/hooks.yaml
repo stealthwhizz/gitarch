@@ -1,0 +1,12 @@
+hooks:
+  on_session_start:
+    - script: validate-environment.sh
+      description: Check required environment variables and git setup
+
+  pre_tool_use:
+    - script: audit-tool-calls.sh
+      description: Log and validate tool usage
+
+  post_response:
+    - script: save-findings.sh
+      description: Save investigation findings to memory

@@ -1,0 +1,40 @@
+{
+  "name": "@stealthwhizz/git-archaeologist",
+  "version": "1.0.0",
+  "description": "A GitAgent-based agent that answers why your codebase is structured the way it is by excavating git history",
+  "type": "module",
+  "main": "index.js",
+  "bin": {
+    "git-arch": "index.js"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Tests run via GitAgent framework\"",
+    "investigate": "node index.js"
+  },
+  "keywords": [
+    "git",
+    "archaeology",
+    "history",
+    "code-analysis",
+    "ai-agent",
+    "gitagent",
+    "decision-tracking"
+  ],
+  "author": "stealthwhizz",
+  "license": "MIT",
+  "dependencies": {
+    "@open-gitagent/gitagent": "^2.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/stealthwhizz/gitarch.git"
+  },
+  "bugs": {
+    "url": "https://github.com/stealthwhizz/gitarch/issues"
+  },
+  "homepage": "https://github.com/stealthwhizz/gitarch#readme"
+}

@@ -1,0 +1,23 @@
+name: git-diff-analysis
+description: Analyze git diffs to understand what changed and why
+input_schema:
+  type: object
+  properties:
+    ref1:
+      type: string
+      description: First ref (branch, tag, or commit)
+    ref2:
+      type: string
+      description: Second ref to compare to (optional, defaults to current HEAD)
+    path:
+      type: string
+      description: Specific file or directory to diff
+    stat:
+      type: boolean
+      description: Show summary stats instead of full diff
+      default: false
+  required:
+    - ref1
+implementation:
+  script: scripts/git-diff-analysis.sh
+  runtime: sh
