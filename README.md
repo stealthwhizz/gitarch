@@ -1,5 +1,14 @@
 # Git Archaeologist
 
+```
+  ██████╗ ██╗████████╗     █████╗ ██████╗  ██████╗██╗  ██╗
+ ██╔════╝ ██║╚══██╔══╝    ██╔══██╗██╔══██╗██╔════╝██║  ██║
+ ██║  ███╗██║   ██║       ███████║██████╔╝██║     ███████║
+ ██║   ██║██║   ██║       ██╔══██║██╔══██╗██║     ██╔══██║
+ ╚██████╔╝██║   ██║       ██║  ██║██║  ██║╚██████╗██║  ██║
+  ╚═════╝ ╚═╝   ╚═╝       ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝
+```
+
 **Dig through git history to understand *why* your codebase is the way it is.**
 
 Git Archaeologist is an AI agent that answers questions about code decisions, not code functionality. It uses git history, commit messages, blame analysis, and deleted files to uncover the "why" behind architectural patterns, technology choices, and implementation decisions.
