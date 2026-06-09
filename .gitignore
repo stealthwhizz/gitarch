@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# GitAgent runtime
+.gitagent/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.vscode/
+.idea/
+
+# Temp files
+temp/
+tmp/
+*.tmp
+
+# Session artifacts (except memory/)
+.copilot/
+.cache/
+
+# Cloned repos (temporary)
+/repos/
