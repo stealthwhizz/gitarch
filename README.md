@@ -32,8 +32,11 @@ npm install
 ### Basic Usage
 
 ```bash
+# Copy and fill in your credentials
+cp .env.example .env
+# Edit .env: set LYZR_API_KEY, GITAGENT_LYZR_AGENT_ID, GITHUB_TOKEN
+
 # Investigate a GitHub repository
-export GITHUB_TOKEN="ghp_xxx"
 node index.js "Why does the auth module avoid async/await?" \
   --repo https://github.com/nodejs/node
 
@@ -108,30 +111,35 @@ gitarch/
 ### Environment Variables
 
 ```bash
-GITHUB_TOKEN          # GitHub personal access token (for private repos)
-GIT_TOKEN            # Alternative name for GITHUB_TOKEN
-GITAGENT_MODEL       # Override default model (default: anthropic:claude-sonnet-4-5-20250929)
-OPENAI_API_KEY       # OpenAI API key (for gpt-4o models)
-ANTHROPIC_API_KEY    # Anthropic API key (for Claude models)
-DEBUG                # Enable debug output
+LYZR_API_KEY              # Lyzr API key (required)
+GITAGENT_LYZR_AGENT_ID    # Lyzr agent ID (required)
+GITHUB_TOKEN              # GitHub personal access token (for private repos)
+GITAGENT_MODEL            # Override the full model string (optional)
+DEBUG                     # Enable debug output (optional)
+```
+
+Copy `.env.example` to `.env` and fill in your Lyzr credentials. The model string is built automatically at runtime:
+
+```
+lyzr:<GITAGENT_LYZR_AGENT_ID>@https://agent-prod.studio.lyzr.ai/v4
 ```
 
 ### agent.yaml
 
 ```yaml
 model:
-  preferred: "anthropic:claude-sonnet-4-5-20250929"
-  fallback: ["openai:gpt-4o"]
+  # Runtime value built from LYZR_API_KEY + GITAGENT_LYZR_AGENT_ID
+  preferred: "lyzr:set-via-env@https://agent-prod.studio.lyzr.ai/v4"
   constraints:
-    temperature: 0.3          # Low temp for precise, factual responses
+    temperature: 0.3
     max_tokens: 8000
 
-tools: [cli, read, write, memory]    # Built-in GitAgent tools
-skills: [archaeology]                # Our custom archaeology skill
+tools: [cli, read, write, memory]
+skills: [archaeology]
 
 runtime:
-  max_turns: 30                # Max conversation turns
-  timeout: 180                 # 3-minute timeout per query
+  max_turns: 30
+  timeout: 180
 ```
 
 ## Investigation Techniques
@@ -212,10 +220,8 @@ Memory enables:
 
 - **Node.js** 18+
 - **git** installed
-- **GitHub Token** (for private repos) — set via `GITHUB_TOKEN` env var
-- **API Key** — For your chosen model provider:
-  - `OPENAI_API_KEY` for OpenAI models
-  - `ANTHROPIC_API_KEY` for Claude models
+- **Lyzr credentials** — `LYZR_API_KEY` and `GITAGENT_LYZR_AGENT_ID` (set in `.env`)
+- **GitHub Token** (for private repos) — `GITHUB_TOKEN` env var
 
 ## Examples in Action
 

@@ -4,8 +4,9 @@ version: 1.0.0
 description: Answers why your codebase is the way it is, using git history
 
 model:
-  preferred: "lyzr:@https://agent-prod.studio.lyzr.ai/v4"
-  fallback: ["anthropic:claude-sonnet-4-5-20250929"]
+  # Runtime value: lyzr:<GITAGENT_LYZR_AGENT_ID>@https://agent-prod.studio.lyzr.ai/v4
+  # Built dynamically in index.js from LYZR_API_KEY + GITAGENT_LYZR_AGENT_ID env vars
+  preferred: "lyzr:set-via-env@https://agent-prod.studio.lyzr.ai/v4"
   constraints:
     temperature: 0.3
     max_tokens: 8000

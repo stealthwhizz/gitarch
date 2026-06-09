@@ -8,14 +8,17 @@
  *   GITHUB_TOKEN=ghp_xxx npx git-arch "Question" --repo https://github.com/org/repo
  *   npx git-arch "Question" --dir /path/to/repo
  * 
- * Environment Variables:
+ * Required environment variables:
+ *   LYZR_API_KEY              - Lyzr API key
+ *   GITAGENT_LYZR_AGENT_ID    - Lyzr agent ID
+ *
+ * Optional:
  *   GITHUB_TOKEN     - GitHub personal access token (for private repos)
- *   GIT_TOKEN        - Alternative to GITHUB_TOKEN
- *   OPENAI_API_KEY   - OpenAI API key (if using OpenAI models)
- *   ANTHROPIC_API_KEY - Anthropic API key (for Claude models)
- * 
- * .env File Support:
- *   Create a .env file with your keys (git-ignored for security)
+ *   GITAGENT_MODEL   - Override the model string (default: built from Lyzr env vars)
+ *   DEBUG            - Enable debug output
+ *
+ * .env file support:
+ *   Create a .env file from .env.example (git-ignored for security)
  */
 
 import { query } from '@open-gitagent/gitagent';
@@ -44,15 +47,34 @@ try {
   // Silently ignore .env loading errors
 }
 
-// Map Google API key to the expected environment variable name
-if (process.env.GOOGLE_API_KEY && !process.env.VERTEX_API_KEY) {
-  process.env.VERTEX_API_KEY = process.env.GOOGLE_API_KEY;
+// GitAgent routes Lyzr through pi-ai's OpenAI-compatible path: it sets
+// model.provider="openai" and sends OPENAI_API_KEY as the Bearer token.
+// So OPENAI_API_KEY must be the real Lyzr key — not "dummy" — for auth to work.
+if (process.env.LYZR_API_KEY) {
+  process.env.OPENAI_API_KEY = process.env.LYZR_API_KEY;
+} else if (!process.env.OPENAI_API_KEY) {
+  process.env.OPENAI_API_KEY = 'dummy';
 }
 
-// Setup Lyzr support: pi-ai needs OPENAI_API_KEY to be set, even for Lyzr
-// If using Lyzr, set OPENAI_API_KEY to a dummy value to satisfy pi-ai internals
-if (process.env.LYZR_API_KEY && !process.env.OPENAI_API_KEY) {
-  process.env.OPENAI_API_KEY = 'dummy';
+// Build the active model string from environment variables.
+// Priority: explicit GITAGENT_MODEL override > Lyzr credentials > error
+function resolveModel() {
+  if (process.env.GITAGENT_MODEL) {
+    return process.env.GITAGENT_MODEL;
+  }
+
+  if (!process.env.LYZR_API_KEY) {
+    console.error('❌ LYZR_API_KEY is not set. Copy .env.example to .env and fill in your Lyzr credentials.');
+    process.exit(1);
+  }
+
+  const agentId = process.env.GITAGENT_LYZR_AGENT_ID;
+  if (!agentId) {
+    console.error('❌ GITAGENT_LYZR_AGENT_ID is not set. Add it to your .env file.');
+    process.exit(1);
+  }
+
+  return `lyzr:${agentId}@https://agent-prod.studio.lyzr.ai/v4`;
 }
 
 const __filename = fileURLToPath(import.meta.url);
@@ -106,7 +128,7 @@ async function main() {
     const queryOptions = {
       prompt,
       dir: localDir,
-      model: process.env.GITAGENT_MODEL || 'anthropic:claude-sonnet-4-5-20250929',
+      model: resolveModel(),
     };
     
     // Debug: Show which API key is being used
@@ -114,9 +136,7 @@ async function main() {
       console.log(`[DEBUG] Model: ${queryOptions.model}`);
       console.log(`[DEBUG] LYZR_API_KEY: ${process.env.LYZR_API_KEY ? '✓' : '✗'}`);
       console.log(`[DEBUG] GITAGENT_LYZR_AGENT_ID: ${process.env.GITAGENT_LYZR_AGENT_ID ? '✓' : '✗'}`);
-      console.log(`[DEBUG] GOOGLE_API_KEY: ${process.env.GOOGLE_API_KEY ? '✓' : '✗'}`);
-      console.log(`[DEBUG] ANTHROPIC_API_KEY: ${process.env.ANTHROPIC_API_KEY ? '✓' : '✗'}`);
-      console.log(`[DEBUG] OPENAI_API_KEY: ${process.env.OPENAI_API_KEY ? '✓' : '✗'}`);
+      console.log(`[DEBUG] GITHUB_TOKEN: ${process.env.GITHUB_TOKEN ? '✓' : '✗'}`);
     }
 
     // If a repo URL is provided, use local repo mode
@@ -218,10 +238,11 @@ OPTIONS
   -h, --help            Show this help message
 
 ENVIRONMENT VARIABLES
-  GITHUB_TOKEN          GitHub personal access token (for private repos)
-  GIT_TOKEN             Alternative name for GitHub token
-  GITAGENT_MODEL        Override default model (default: anthropic:claude-sonnet-4-5-20250929)
-  DEBUG                 Enable debug output
+  LYZR_API_KEY              Lyzr API key (required)
+  GITAGENT_LYZR_AGENT_ID    Lyzr agent ID (required)
+  GITHUB_TOKEN              GitHub personal access token (for private repos)
+  GITAGENT_MODEL            Override the full model string
+  DEBUG                     Enable debug output
 
 EXAMPLES
   # Investigate a GitHub repo
@@ -233,13 +254,13 @@ EXAMPLES
   # Use a specific GitHub token
   git-arch "Question" --repo https://github.com/org/repo --pat ghp_xxxxx
 
-  # Set model preference
-  GITAGENT_MODEL="openai:gpt-4o" git-arch "Question" --repo <url>
+  # Override model (advanced)
+  GITAGENT_MODEL="lyzr:other-agent-id@https://agent-prod.studio.lyzr.ai/v4" git-arch "Question" --repo <url>
 
 REQUIREMENTS
   - Node.js 18+
   - git installed
-  - API key for your chosen model (OPENAI_API_KEY or ANTHROPIC_API_KEY)
+  - LYZR_API_KEY and GITAGENT_LYZR_AGENT_ID set in .env
 
 For more info, visit: https://github.com/stealthwhizz/gitarch
   `);
