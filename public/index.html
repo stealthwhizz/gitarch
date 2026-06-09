@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Git Archaeologist</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d1117;
+      --surface:   #161b22;
+      --border:    #30363d;
+      --muted:     #21262d;
+      --text:      #e6edf3;
+      --dim:       #8b949e;
+      --faint:     #484f58;
+      --green:     #3fb950;
+      --blue:      #58a6ff;
+      --red:       #f85149;
+      --yellow:    #d29922;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px 20px 80px;
+    }
+
+    .wrap { width: 100%; max-width: 860px; }
+
+    /* ── header ── */
+    .header { text-align: center; margin-bottom: 36px; }
+    .header pre {
+      color: var(--green);
+      font-size: 0.7rem;
+      line-height: 1.3;
+      display: inline-block;
+      text-align: left;
+    }
+    .header p {
+      color: var(--dim);
+      font-size: 0.8rem;
+      margin-top: 10px;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── input panel ── */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 22px 24px;
+      margin-bottom: 16px;
+    }
+
+    .input-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--muted);
+    }
+    .input-row:last-of-type { border-bottom: none; }
+
+    .input-label {
+      color: var(--green);
+      font-size: 0.8rem;
+      min-width: 72px;
+      user-select: none;
+    }
+    .input-label::before { content: '$ '; color: var(--faint); }
+
+    input[type="text"] {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.88rem;
+      padding: 6px 0;
+      outline: none;
+      caret-color: var(--green);
+    }
+    input[type="text"]::placeholder { color: var(--faint); }
+
+    .btn-row {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 16px;
+    }
+
+    button {
+      background: #238636;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 9px 24px;
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    button:hover:not(:disabled) { background: #2ea043; }
+    button:disabled { background: var(--muted); color: var(--faint); cursor: not-allowed; }
+
+    /* ── terminal ── */
+    .term-chrome {
+      background: var(--muted);
+      border: 1px solid var(--border);
+      border-bottom: none;
+      border-radius: 10px 10px 0 0;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
+    .dot-r { background: #f85149; }
+    .dot-y { background: #d29922; }
+    .dot-g { background: #3fb950; }
+    .term-title { color: var(--faint); font-size: 0.75rem; margin: 0 auto; }
+
+    .terminal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 10px 10px;
+      min-height: 420px;
+      max-height: 560px;
+      overflow-y: auto;
+      padding: 20px 24px;
+      font-size: 0.84rem;
+      line-height: 1.65;
+      scroll-behavior: smooth;
+    }
+    .terminal::-webkit-scrollbar { width: 6px; }
+    .terminal::-webkit-scrollbar-track { background: transparent; }
+    .terminal::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .line { white-space: pre-wrap; word-break: break-word; }
+    .c-dim    { color: var(--faint); }
+    .c-muted  { color: var(--dim); }
+    .c-tool   { color: var(--dim); }
+    .c-text   { color: var(--text); }
+    .c-green  { color: var(--green); }
+    .c-blue   { color: var(--blue); }
+    .c-red    { color: var(--red); }
+
+    .cursor {
+      display: inline-block;
+      width: 7px;
+      height: 0.9em;
+      background: var(--green);
+      vertical-align: text-bottom;
+      margin-left: 1px;
+      animation: blink 1s step-end infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    /* spinner in button */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { display: inline-block; animation: spin 0.8s linear infinite; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <pre>
+  ██████╗ ██╗████████╗     █████╗ ██████╗  ██████╗██╗  ██╗
+ ██╔════╝ ██║╚══██╔══╝    ██╔══██╗██╔══██╗██╔════╝██║  ██║
+ ██║  ███╗██║   ██║       ███████║██████╔╝██║     ███████║
+ ██║   ██║██║   ██║       ██╔══██║██╔══██╗██║     ██╔══██║
+ ╚██████╔╝██║   ██║       ██║  ██║██║  ██║╚██████╗██║  ██║
+  ╚═════╝ ╚═╝   ╚═╝       ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝</pre>
+    <p>dig through git history · understand why your codebase is the way it is</p>
+  </div>
+
+  <div class="panel">
+    <div class="input-row">
+      <span class="input-label">repo</span>
+      <input id="repo" type="text"
+        placeholder="https://github.com/owner/repo"
+        autocomplete="off" spellcheck="false" />
+    </div>
+    <div class="input-row">
+      <span class="input-label">question</span>
+      <input id="question" type="text"
+        placeholder="Why was this decision made at this time?"
+        autocomplete="off" />
+    </div>
+    <div class="btn-row">
+      <button id="runBtn">⟶ &nbsp;INVESTIGATE</button>
+    </div>
+  </div>
+
+  <div class="term-chrome">
+    <div class="dot dot-r"></div>
+    <div class="dot dot-y"></div>
+    <div class="dot dot-g"></div>
+    <span class="term-title">git-archaeologist — output</span>
+  </div>
+  <div class="terminal" id="output">
+    <span class="line c-dim">// enter a repo URL and your question above, then hit Investigate.</span>
+  </div>
+
+</div>
+
+<script>
+  const output  = document.getElementById('output');
+  const runBtn  = document.getElementById('runBtn');
+  const repoEl  = document.getElementById('repo');
+  const qEl     = document.getElementById('question');
+
+  let es = null;
+  let cursor = null;
+  let deltaEl = null;
+  let deltaText = '';
+
+  function line(text, cls = 'c-text') {
+    const d = document.createElement('div');
+    d.className = `line ${cls}`;
+    d.textContent = text;
+    output.appendChild(d);
+    scroll();
+    return d;
+  }
+
+  function blank() { line('', 'c-dim'); }
+
+  function scroll() { output.scrollTop = output.scrollHeight; }
+
+  function showCursor() {
+    removeCursor();
+    cursor = document.createElement('span');
+    cursor.className = 'cursor';
+    output.appendChild(cursor);
+    scroll();
+  }
+
+  function removeCursor() {
+    if (cursor) { cursor.remove(); cursor = null; }
+  }
+
+  function setRunning(running) {
+    runBtn.disabled = running;
+    runBtn.innerHTML = running
+      ? '<span class="spin">⟳</span> &nbsp;running...'
+      : '⟶ &nbsp;INVESTIGATE';
+    repoEl.disabled  = running;
+    qEl.disabled     = running;
+  }
+
+  function handleMsg(msg) {
+    removeCursor();
+
+    switch (msg.type) {
+      case 'delta':
+        if (!deltaEl) {
+          blank();
+          deltaEl = document.createElement('div');
+          deltaEl.className = 'line c-text';
+          output.appendChild(deltaEl);
+        }
+        deltaText += msg.content;
+        deltaEl.textContent = deltaText;
+        scroll();
+        break;
+
+      case 'tool_use':
+        line(`  ›  ${msg.toolName}`, 'c-tool');
+        break;
+
+      case 'tool_result':
+        if (msg.isError) line(`  ✗  ${msg.content}`, 'c-red');
+        break;
+
+      case 'system':
+        if (msg.subtype === 'error') {
+          blank();
+          line(`✗  ${msg.content}`, 'c-red');
+        } else if (msg.subtype === 'info') {
+          line(`⟳  ${msg.content}`, 'c-blue');
+        }
+        break;
+
+      case 'done':
+        blank();
+        line('✓  investigation complete.', 'c-green');
+        done();
+        return;
+
+      case 'error':
+        blank();
+        line(`✗  ${msg.message}`, 'c-red');
+        done();
+        return;
+    }
+
+    showCursor();
+  }
+
+  function done() {
+    removeCursor();
+    if (es) { es.close(); es = null; }
+    setRunning(false);
+  }
+
+  function investigate() {
+    const repo     = repoEl.value.trim();
+    const question = qEl.value.trim();
+
+    if (!repo || !question) {
+      line('✗  enter both a repo URL and a question.', 'c-red');
+      return;
+    }
+
+    if (es) { es.close(); es = null; }
+
+    output.innerHTML = '';
+    deltaEl   = null;
+    deltaText = '';
+
+    line(`$  repo      ${repo}`,     'c-dim');
+    line(`$  question  ${question}`, 'c-dim');
+    blank();
+    line('⟳  cloning repository and starting investigation...', 'c-blue');
+    showCursor();
+    setRunning(true);
+
+    const url = `/investigate?repo=${encodeURIComponent(repo)}&question=${encodeURIComponent(question)}`;
+    es = new EventSource(url);
+
+    es.onmessage = (e) => {
+      try { handleMsg(JSON.parse(e.data)); }
+      catch { /* ignore parse errors */ }
+    };
+
+    es.onerror = () => {
+      removeCursor();
+      blank();
+      line('✗  connection lost.', 'c-red');
+      done();
+    };
+  }
+
+  runBtn.addEventListener('click', investigate);
+  qEl.addEventListener('keydown',   (e) => { if (e.key === 'Enter') investigate(); });
+  repoEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') qEl.focus(); });
+</script>
+</body>
+</html>
