@@ -1,24 +1,24 @@
 #!/bin/bash
-set -e
 
 # Validate environment setup on session start
 echo "[Pre-Session] Checking environment..."
 
 # Check if git is available
-if ! command -v git &> /dev/null; then
-    echo "{\"action\": \"block\", \"reason\": \"git is not available on this system\"}"
+if ! command -v git > /dev/null 2>&1; then
+    echo '{"action": "block", "reason": "git is not available on this system"}'
     exit 1
 fi
 
-# Check for GitHub token (optional but recommended for private repos)
-if [ -z "$GITHUB_TOKEN" ] && [ -z "$GIT_TOKEN" ]; then
-    echo "[Warning] No GitHub token found. Working with public repos only."
+# Check for API keys (at least one must be set)
+if [ -z "$GOOGLE_API_KEY" ] && [ -z "$ANTHROPIC_API_KEY" ] && [ -z "$OPENAI_API_KEY" ] && [ -z "$MISTRAL_API_KEY" ] && [ -z "$GROQ_API_KEY" ]; then
+    echo '[Warning] No API key found. Set one of: GOOGLE_API_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY, MISTRAL_API_KEY, GROQ_API_KEY'
 fi
 
-# Check if we're in a git repo (if a target repo is provided)
+# Check if we're in a git repo
 if [ -d ".git" ]; then
     echo "[Info] Working within a git repository"
 fi
 
 # Allow session to proceed
-echo "{\"action\": \"allow\"}"
+echo '{"action": "allow"}'
+

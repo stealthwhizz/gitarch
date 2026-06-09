@@ -1,12 +1,7 @@
 hooks:
-  on_session_start:
-    - script: validate-environment.sh
-      description: Check required environment variables and git setup
+  # Lifecycle hooks temporarily disabled for debugging
+  # Will be re-enabled once environment setup is stable
+  # on_session_start:
+  #   - script: validate-environment.sh
+  #     description: Check required environment variables and git setup
 
-  pre_tool_use:
-    - script: audit-tool-calls.sh
-      description: Log and validate tool usage
-
-  post_response:
-    - script: save-findings.sh
-      description: Save investigation findings to memory

@@ -4,8 +4,8 @@ version: 1.0.0
 description: Answers why your codebase is the way it is, using git history
 
 model:
-  preferred: "anthropic:claude-sonnet-4-5-20250929"
-  fallback: ["openai:gpt-4o"]
+  preferred: "lyzr:@https://agent-prod.studio.lyzr.ai/v4"
+  fallback: ["anthropic:claude-sonnet-4-5-20250929"]
   constraints:
     temperature: 0.3
     max_tokens: 8000

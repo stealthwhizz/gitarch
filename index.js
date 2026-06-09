@@ -13,12 +13,50 @@
  *   GIT_TOKEN        - Alternative to GITHUB_TOKEN
  *   OPENAI_API_KEY   - OpenAI API key (if using OpenAI models)
  *   ANTHROPIC_API_KEY - Anthropic API key (for Claude models)
+ * 
+ * .env File Support:
+ *   Create a .env file with your keys (git-ignored for security)
  */
 
-const { query } = require('@open-gitagent/gitagent');
-const path = require('path');
-const fs = require('fs');
-const os = require('os');
+import { query } from '@open-gitagent/gitagent';
+import path from 'path';
+import fs from 'fs';
+import os from 'os';
+import { fileURLToPath } from 'url';
+
+// Load .env file if it exists
+try {
+  const envPath = path.join(process.cwd(), '.env');
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf-8');
+    envContent.split('\n').forEach(line => {
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.startsWith('#')) {
+        const [key, ...valueParts] = trimmed.split('=');
+        const value = valueParts.join('=').replace(/^["']|["']$/g, '');
+        if (key && value && !process.env[key]) {
+          process.env[key] = value;
+        }
+      }
+    });
+  }
+} catch (err) {
+  // Silently ignore .env loading errors
+}
+
+// Map Google API key to the expected environment variable name
+if (process.env.GOOGLE_API_KEY && !process.env.VERTEX_API_KEY) {
+  process.env.VERTEX_API_KEY = process.env.GOOGLE_API_KEY;
+}
+
+// Setup Lyzr support: pi-ai needs OPENAI_API_KEY to be set, even for Lyzr
+// If using Lyzr, set OPENAI_API_KEY to a dummy value to satisfy pi-ai internals
+if (process.env.LYZR_API_KEY && !process.env.OPENAI_API_KEY) {
+  process.env.OPENAI_API_KEY = 'dummy';
+}
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Parse command-line arguments
 const args = process.argv.slice(2);
@@ -70,6 +108,16 @@ async function main() {
       dir: localDir,
       model: process.env.GITAGENT_MODEL || 'anthropic:claude-sonnet-4-5-20250929',
     };
+    
+    // Debug: Show which API key is being used
+    if (process.env.DEBUG) {
+      console.log(`[DEBUG] Model: ${queryOptions.model}`);
+      console.log(`[DEBUG] LYZR_API_KEY: ${process.env.LYZR_API_KEY ? '✓' : '✗'}`);
+      console.log(`[DEBUG] GITAGENT_LYZR_AGENT_ID: ${process.env.GITAGENT_LYZR_AGENT_ID ? '✓' : '✗'}`);
+      console.log(`[DEBUG] GOOGLE_API_KEY: ${process.env.GOOGLE_API_KEY ? '✓' : '✗'}`);
+      console.log(`[DEBUG] ANTHROPIC_API_KEY: ${process.env.ANTHROPIC_API_KEY ? '✓' : '✗'}`);
+      console.log(`[DEBUG] OPENAI_API_KEY: ${process.env.OPENAI_API_KEY ? '✓' : '✗'}`);
+    }
 
     // If a repo URL is provided, use local repo mode
     if (repoUrl) {
