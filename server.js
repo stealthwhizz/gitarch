@@ -57,8 +57,19 @@ function resolveModel() {
   return `lyzr:${process.env.GITAGENT_LYZR_AGENT_ID}@https://agent-prod.studio.lyzr.ai/v4`;
 }
 
+function copyDirSync(src, dest) {
+  fs.mkdirSync(dest, { recursive: true });
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    const s = path.join(src, entry.name);
+    const d = path.join(dest, entry.name);
+    if (entry.isDirectory()) copyDirSync(s, d);
+    else fs.copyFileSync(s, d);
+  }
+}
+
 // Clone target repo into a fresh temp directory so GitAgent never touches
-// the server's own working tree.
+// the server's own working tree. Agent config files are copied in so
+// GitAgent can find agent.yaml, SOUL.md, etc. inside the temp dir.
 function cloneToTemp(repoUrl) {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gitarch-'));
   const token  = process.env.GITHUB_TOKEN;
@@ -71,6 +82,14 @@ function cloneToTemp(repoUrl) {
     stdio: 'pipe',
     timeout: 90_000,
   });
+
+  // Copy agent config files so GitAgent finds them in the working dir
+  for (const f of ['agent.yaml', 'SOUL.md', 'RULES.md']) {
+    const src = path.join(__dirname, f);
+    if (fs.existsSync(src)) fs.copyFileSync(src, path.join(tmpDir, f));
+  }
+  const skillsSrc = path.join(__dirname, 'skills');
+  if (fs.existsSync(skillsSrc)) copyDirSync(skillsSrc, path.join(tmpDir, 'skills'));
 
   return tmpDir;
 }
