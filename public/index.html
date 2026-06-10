@@ -261,6 +261,27 @@
     qEl.disabled     = running;
   }
 
+  function toolLabel(name, args) {
+    if (!name) return '';
+    const a = args || {};
+    if (name === 'cli' || name === 'bash') {
+      const cmd = a.command || a.cmd || JSON.stringify(a).slice(0, 80);
+      return `$ ${cmd}`;
+    }
+    if (name === 'read') {
+      const f = a.file_path || a.path || a.file || JSON.stringify(a).slice(0, 60);
+      return `read  ${f}`;
+    }
+    if (name === 'write') {
+      const f = a.file_path || a.path || a.file || JSON.stringify(a).slice(0, 60);
+      return `write ${f}`;
+    }
+    if (name === 'memory' || name === 'task_tracker') {
+      return `${name}  ${JSON.stringify(a).slice(0, 80)}`;
+    }
+    return `${name}  ${JSON.stringify(a).slice(0, 80)}`;
+  }
+
   function handleMsg(msg) {
     removeCursor();
 
@@ -277,9 +298,17 @@
         scroll();
         break;
 
-      case 'tool_use':
-        line(`  ›  ${msg.toolName}`, 'c-tool');
+      case 'assistant':
+        // new assistant turn — flush delta and start fresh
+        deltaEl = null;
+        deltaText = '';
         break;
+
+      case 'tool_use': {
+        const label = toolLabel(msg.toolName, msg.args);
+        line(`  ›  ${label}`, 'c-tool');
+        break;
+      }
 
       case 'tool_result':
         if (msg.isError) line(`  ✗  ${msg.content}`, 'c-red');

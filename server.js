@@ -86,6 +86,7 @@ app.get('/investigate', async (req, res) => {
   res.flushHeaders();
 
   const send = (payload) => res.write(`data: ${JSON.stringify(payload)}\n\n`);
+  const keepalive = setInterval(() => res.write(': ping\n\n'), 20_000);
 
   try {
     const opts = {
@@ -102,6 +103,7 @@ app.get('/investigate', async (req, res) => {
   } catch (err) {
     send({ type: 'error', message: err.message });
   } finally {
+    clearInterval(keepalive);
     res.end();
   }
 });
