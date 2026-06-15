@@ -63,9 +63,12 @@ function buildPrompt(repoUrl, question) {
   const tmpDir = `/tmp/gitarch-${Date.now()}`;
   return [
     `Clone the repository at ${cloneUrl} into ${tmpDir} using: git clone --depth=100 ${cloneUrl} ${tmpDir}`,
-    `Then answer this question by running git commands (log, blame, show, diff, grep) against ${tmpDir}:`,
     ``,
+    `Then answer this question using git commands (log, blame, show, diff) against ${tmpDir}:`,
     question,
+    ``,
+    `IMPORTANT: Do NOT use task_tracker, do NOT read or write memory, do NOT plan steps.`,
+    `Just run git commands and answer directly. Be concise.`,
   ].join('\n');
 }
 
