@@ -55,17 +55,36 @@ function resolveModel() {
   return `lyzr:${process.env.GITAGENT_LYZR_AGENT_ID}@https://agent-prod.studio.lyzr.ai/v4`;
 }
 
+function validateRepoUrl(raw) {
+  let parsed;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    return { error: 'invalid URL' };
+  }
+  if (parsed.protocol !== 'https:') return { error: 'only https URLs are allowed' };
+  if (parsed.hostname !== 'github.com') return { error: 'only github.com repos are supported' };
+  const parts = parsed.pathname.replace(/^\//, '').split('/');
+  if (parts.length < 2 || !parts[0] || !parts[1]) return { error: 'URL must point to a GitHub repo (github.com/owner/repo)' };
+  // return only the clean origin+path — strips any injected credentials
+  return { url: `https://github.com/${parts[0]}/${parts[1].replace(/\.git$/, '')}` };
+}
+
 function buildPrompt(repoUrl, question) {
   const token = process.env.GITHUB_TOKEN;
+  // token is only injected after URL is validated to be github.com
   const cloneUrl = token
-    ? repoUrl.replace('https://', `https://${token}@`)
+    ? `https://${token}@github.com${new URL(repoUrl).pathname}`
     : repoUrl;
   const tmpDir = `/tmp/gitarch-${Date.now()}`;
   return [
     `Clone the repository at ${cloneUrl} into ${tmpDir} using: git clone --depth=100 ${cloneUrl} ${tmpDir}`,
-    `Then answer this question by running git commands (log, blame, show, diff, grep) against ${tmpDir}:`,
     ``,
+    `Then answer this question using git commands (log, blame, show, diff) against ${tmpDir}:`,
     question,
+    ``,
+    `IMPORTANT: Do NOT use task_tracker, do NOT read or write memory, do NOT plan steps.`,
+    `Just run git commands and answer directly. Be concise.`,
   ].join('\n');
 }
 
@@ -79,6 +98,11 @@ app.get('/investigate', async (req, res) => {
     return res.status(400).json({ error: 'repo and question are required' });
   }
 
+  const { url: safeRepo, error: urlError } = validateRepoUrl(repo);
+  if (urlError) {
+    return res.status(400).json({ error: urlError });
+  }
+
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
@@ -86,10 +110,11 @@ app.get('/investigate', async (req, res) => {
   res.flushHeaders();
 
   const send = (payload) => res.write(`data: ${JSON.stringify(payload)}\n\n`);
+  const keepalive = setInterval(() => res.write(': ping\n\n'), 20_000);
 
   try {
     const opts = {
-      prompt: buildPrompt(repo, question),
+      prompt: buildPrompt(safeRepo, question),
       model: resolveModel(),
       dir: __dirname,
     };
@@ -102,6 +127,7 @@ app.get('/investigate', async (req, res) => {
   } catch (err) {
     send({ type: 'error', message: err.message });
   } finally {
+    clearInterval(keepalive);
     res.end();
   }
 });
