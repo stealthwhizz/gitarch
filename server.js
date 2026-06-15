@@ -103,6 +103,11 @@ app.get('/investigate', async (req, res) => {
     return res.status(400).json({ error: urlError });
   }
 
+  const safeQuestion = question.slice(0, 500).replace(/[^\w\s.,?!'"()\-:]/g, ' ').trim();
+  if (!safeQuestion) {
+    return res.status(400).json({ error: 'question contains no valid text' });
+  }
+
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
@@ -114,7 +119,7 @@ app.get('/investigate', async (req, res) => {
 
   try {
     const opts = {
-      prompt: buildPrompt(safeRepo, question),
+      prompt: buildPrompt(safeRepo, safeQuestion),
       model: resolveModel(),
       dir: __dirname,
     };
