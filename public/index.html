@@ -6,6 +6,7 @@
   <title>Git Archaeologist</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -148,6 +149,22 @@
     .terminal::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
     .line { white-space: pre-wrap; word-break: break-word; }
+
+    /* markdown rendered output */
+    .md-output { color: var(--text); line-height: 1.75; }
+    .md-output h1, .md-output h2, .md-output h3 { color: var(--green); margin: 14px 0 6px; font-size: 0.95rem; }
+    .md-output h4, .md-output h5 { color: var(--blue); margin: 10px 0 4px; font-size: 0.88rem; }
+    .md-output p { margin: 6px 0; }
+    .md-output strong { color: var(--text); font-weight: 700; }
+    .md-output em { color: var(--dim); font-style: italic; }
+    .md-output code { background: var(--muted); color: var(--blue); padding: 1px 5px; border-radius: 4px; font-size: 0.82rem; }
+    .md-output pre { background: var(--muted); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; margin: 8px 0; overflow-x: auto; }
+    .md-output pre code { background: none; padding: 0; color: var(--text); }
+    .md-output ul, .md-output ol { margin: 6px 0 6px 20px; }
+    .md-output li { margin: 3px 0; }
+    .md-output blockquote { border-left: 3px solid var(--green); padding-left: 12px; color: var(--dim); margin: 8px 0; }
+    .md-output a { color: var(--blue); text-decoration: none; }
+    .md-output hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
     .c-dim    { color: var(--faint); }
     .c-muted  { color: var(--dim); }
     .c-tool   { color: var(--dim); }
@@ -290,16 +307,15 @@
         if (!deltaEl) {
           blank();
           deltaEl = document.createElement('div');
-          deltaEl.className = 'line c-text';
+          deltaEl.className = 'md-output';
           output.appendChild(deltaEl);
         }
         deltaText += msg.content;
-        deltaEl.textContent = deltaText;
+        deltaEl.innerHTML = marked.parse(deltaText);
         scroll();
         break;
 
       case 'assistant':
-        // new assistant turn — flush delta and start fresh
         deltaEl = null;
         deltaText = '';
         break;
@@ -345,12 +361,34 @@
     setRunning(false);
   }
 
+  function validate(repo, question) {
+    if (!repo) return 'enter a GitHub repo URL.';
+    if (!question) return 'enter a question.';
+    if (question.length < 10) return 'question is too short — be more specific.';
+
+    let url;
+    try {
+      url = new URL(repo.startsWith('http') ? repo : `https://${repo}`);
+    } catch {
+      return 'repo URL is not valid.';
+    }
+    if (url.hostname !== 'github.com') return 'only GitHub repos are supported.';
+    const parts = url.pathname.replace(/^\//, '').split('/');
+    if (parts.length < 2 || !parts[0] || !parts[1]) return 'URL must be a GitHub repo (github.com/owner/repo).';
+
+    return null;
+  }
+
   function investigate() {
-    const repo     = repoEl.value.trim();
+    let repo     = repoEl.value.trim();
     const question = qEl.value.trim();
 
-    if (!repo || !question) {
-      line('✗  enter both a repo URL and a question.', 'c-red');
+    // auto-fix missing protocol
+    if (repo && !repo.startsWith('http')) repo = `https://${repo}`;
+
+    const err = validate(repo, question);
+    if (err) {
+      line(`✗  ${err}`, 'c-red');
       return;
     }
 
